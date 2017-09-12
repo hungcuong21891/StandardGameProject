@@ -1,0 +1,272 @@
+﻿using UnityEngine;
+using System.Collections;
+using UnityEngine.SceneManagement;
+
+namespace BaseFramework {
+    /// <summary>
+    /// User interface handler.
+    /// </summary>
+    public class UIHandler : Singleton<UIHandler> {
+        /// <summary>
+        /// Initialize this instance.
+        /// </summary>
+        protected override void Initialize() {
+        }
+        /// <summary>
+        /// Start this instance.
+        /// </summary>
+        void Start() {
+            EventManager.StartListening("PlayGame", PlayGame);
+            EventManager.StartListening("GameCenter", GameCenter);
+            EventManager.StartListening("Leaderboard", Leaderboard);
+            EventManager.StartListening("Achievement", Achievement);
+            EventManager.StartListening("Shop", Shop);
+            EventManager.StartListening("RemoveAds", RemoveAds);
+            EventManager.StartListening("Menu", Menu);
+            EventManager.StartListening("CoinShop", CoinShop);
+            EventManager.StartListening("ChooseCampaign", ChooseCampaign);
+            EventManager.StartListening("EnterMap", EnterMap);
+            EventManager.StartListening("BuyType1", BuyType1);
+            EventManager.StartListening("BuyType2", BuyType2);
+            EventManager.StartListening("BuyType3", BuyType3);
+            EventManager.StartListening("TurnSoundOn", TurnSoundOn);
+            EventManager.StartListening("TurnSoundOff", TurnSoundOff);
+            EventManager.StartListening("TurnKidModeOn", TurnKidModeOn);
+            EventManager.StartListening("TurnKidModeOff", TurnKidModeOff);
+            EventManager.StartListening("UnlockCharacter", UnlockCharacter);
+            EventManager.StartListening("SelectCharacter", SelectCharacter);
+            EventManager.StartListening("Share", Share);
+            EventManager.StartListening("Rate", Rate);
+            EventManager.StartListening("Congratulations", Congratulations);
+            EventManager.StartListening("RestoreIAP", RestoreIAP);
+        }
+        /// <summary>
+        /// Plaies the game.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void PlayGame(EventInfo eventInfo) {
+            if (GameManager.GetInstance().gameInformation.hasCampaignScene) {
+                ChooseCampaign(null);
+            } else {
+                EnterMap(eventInfo);
+            }
+        }
+        /// <summary>
+        /// Games the center.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void GameCenter(EventInfo eventInfo) {
+            //link to gamecenter
+            ConnectSocial.AuthenticateToSocial();
+        }
+        /// <summary>
+        /// Leaderboard the specified eventInfo.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void Leaderboard(EventInfo eventInfo) {
+            //link to leaderboard
+            ConnectSocial.ShowLeaderboard();
+        }
+        /// <summary>
+        /// Achievement the specified eventInfo.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void Achievement(EventInfo eventInfo) {
+            //link to achievement
+            ConnectSocial.ShowAchievement();
+        }
+        /// <summary>
+        /// Shop the specified eventInfo.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void Shop(EventInfo eventInfo) {
+            if (GameManager.GetInstance().gameInformation.hasShopScene) {
+                //enter shop
+                ChangeScene("Shop");
+            }
+        }
+        /// <summary>
+        /// Share the specified eventInfo.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void Share(EventInfo eventInfo) {
+            //share highScore
+            SocialManager.GetInstance().shareScreenShot();
+        }
+        /// <summary>
+        /// Rate the specified eventInfo.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void Rate(EventInfo eventInfo) {
+            //go to app store to rate game
+            SocialManager.OnRateButtonClick();
+        }
+        /// <summary>
+        /// Removes the ads.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void RemoveAds(EventInfo eventInfo) {
+            //remove ads
+            Purchaser.GetInstance().BuyProductID("removeAds");
+        }
+        /// <summary>
+        /// Restores the IA.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void RestoreIAP(EventInfo eventInfo) {
+            //restoreIAP
+            Purchaser.GetInstance().RestorePurchases();
+        }
+        /// <summary>
+        /// Kids the mode.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void KidMode(EventInfo eventInfo) {
+            //on/off blood
+        }
+        /// <summary>
+        /// Shows the credits.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void ShowCredits(EventInfo eventInfo) {
+            //credits
+        }
+        /// <summary>
+        /// Chooses the campaign.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void ChooseCampaign(EventInfo eventInfo) {
+            ChangeScene("ChooseCampaign");
+        }
+        /// <summary>
+        /// Menu the specified eventInfo.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void Menu(EventInfo eventInfo) {
+            ChangeScene("Main"); // back to 
+        }
+        /// <summary>
+        /// Coins the shop.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void CoinShop(EventInfo eventInfo) {
+            ChangeScene("CoinShop"); //load coin shop
+        }
+        /// <summary>
+        /// Congratulations the specified eventInfo.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void Congratulations(EventInfo eventInfo) {
+            ChangeScene("Congratulations");
+        }
+        /// <summary>
+        /// Buies the type1.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void BuyType1(EventInfo eventInfo) {
+            //IAP1
+            Purchaser.GetInstance().BuyProductID("coinPack1");
+        }
+        /// <summary>
+        /// Buies the type2.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void BuyType2(EventInfo eventInfo) {
+            //IAP2
+            Purchaser.GetInstance().BuyProductID("coinPack2");
+        }
+        /// <summary>
+        /// Buies the type3.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void BuyType3(EventInfo eventInfo) {
+            //IAP3
+            Purchaser.GetInstance().BuyProductID("coinPack3");
+        }
+        /// <summary>
+        /// Enters the map.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void EnterMap(EventInfo eventInfo) {
+			string Name = "";
+			if (eventInfo != null) {
+				eventInfo.eventString.TryGetValue ("Name", out Name);
+			}
+            if (Name == "") {
+                ChangeScene("Gameplay");
+            } else {
+                ChangeScene(Name);
+            }
+        }
+        /// <summary>
+        /// Turns the sound on.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void TurnSoundOn(EventInfo eventInfo) {
+            SoundManager.GetInstance().EnableSound();
+        }
+        /// <summary>
+        /// Turns the sound off.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void TurnSoundOff(EventInfo eventInfo) {
+            SoundManager.GetInstance().DisableSound();
+        }
+        /// <summary>
+        /// Turns the kid mode on.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void TurnKidModeOn(EventInfo eventInfo) {
+            PlayerManager.GetInstance().UpdateKidMode(1);
+        }
+        /// <summary>
+        /// Turns the kid mode off.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void TurnKidModeOff(EventInfo eventInfo) {
+            PlayerManager.GetInstance().UpdateKidMode(0);
+        }
+        /// <summary>
+        /// Unlocks the character.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void UnlockCharacter(EventInfo eventInfo) {
+            int characterId;
+            int cost;
+            if (eventInfo.eventInteger.TryGetValue("characterId", out characterId)) {
+                //check if the character can be unlocked
+                eventInfo.eventInteger.TryGetValue("cost", out cost);
+                if (cost <= PlayerManager.GetInstance().playerCoin) {
+                    PlayerManager.GetInstance().AddCoin(-cost);
+                    PlayerManager.GetInstance().AddUnlockCharacters(characterId);
+                    EventManager.TriggerEvent("UnlockSuccessful", null);
+                } else {
+                    Debug.Log("eo du tien");
+                    PopupManager.GetInstance().ShowPopup("Not enough money! Buy more?", "CoinShop", null);
+                }
+            } else {
+                Debug.Log("Error");
+            }
+        }
+        /// <summary>
+        /// Selects the character.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void SelectCharacter(EventInfo eventInfo) {
+            int characterId;
+            if (eventInfo.eventInteger.TryGetValue("characterId", out characterId)) {
+                PlayerManager.GetInstance().SelectCharacter(characterId);
+            } else {
+                Debug.Log("Unlock Character Failed");
+            }
+        }
+        /// <summary>
+        /// Changes the scene.
+        /// </summary>
+        /// <param name="sceneId">Scene identifier.</param>
+        void ChangeScene(string sceneName) {
+            GameObjectUtil.DestroyObjectPool();
+            SceneManager.LoadScene(sceneName);
+        }
+    }
+}

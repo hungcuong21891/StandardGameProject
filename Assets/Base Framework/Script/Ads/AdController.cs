@@ -1,0 +1,468 @@
+﻿using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+
+namespace BaseFramework {
+    /// <summary>
+    /// Ad load state.
+    /// </summary>
+    public enum AdLoadState {
+        /// <summary>
+        /// The undefined.
+        /// </summary>
+        Undefined,
+        /// <summary>
+        /// The loaded.
+        /// </summary>
+        Loaded,
+        /// <summary>
+        /// The failed.
+        /// </summary>
+        Failed,
+        /// <summary>
+        /// The in progress.
+        /// </summary>
+        InProgress
+    }
+    /// <summary>
+    /// Ad controller.
+    /// </summary>
+    public class AdController : Singleton<AdController> {
+        /// <summary>
+        /// The is showing banner.
+        /// </summary>
+        [System.NonSerialized]
+        public bool isShowingBanner = false;
+        /// <summary>
+        /// The current interstitial provider.
+        /// </summary>
+        [System.NonSerialized]
+        public AdProvider currentInterstitialProvider = null;
+        /// <summary>
+        /// The current video provider.
+        /// </summary>
+        [System.NonSerialized]
+        public AdProvider currentVideoProvider = null;
+        /// <summary>
+        /// The ad profile setting.
+        /// </summary>
+        public AdProfileSetting adProfileSetting;
+        /// <summary>
+        /// The interstitial providers.
+        /// </summary>
+        private List<AdProvider> interstitialProviders = new List<AdProvider>();
+        /// <summary>
+        /// The state of the interstitial load.
+        /// </summary>
+        private AdLoadState interstitialLoadState = AdLoadState.Undefined;
+        /// <summary>
+        /// The video providers.
+        /// </summary>
+        private List<AdProvider> videoProviders = new List<AdProvider>();
+        /// <summary>
+        /// The state of the video load.
+        /// </summary>
+        private AdLoadState videoLoadState = AdLoadState.Undefined;
+        /// <summary>
+        /// The current banner provider.
+        /// </summary>
+        private AdMobProvider currentBannerProvider = null;
+        /// <summary>
+        /// The is removed ads.
+        /// </summary>
+        private bool isRemovedAds = false;
+        /// <summary>
+        /// Initialize this instance.
+        /// </summary>
+        protected override void Initialize() {
+            AdProfile profile = null;
+            foreach (AdProfile p in adProfileSetting.adProfiles) {
+                if (adProfileSetting.chooseProfilePolicy == ChooseProfilePolicy.FIRST) {
+                    //highest priority is the first profile that has same platform
+                    if (p.platform.Equals(Application.platform)) {
+                        profile = p;
+                        break;
+                    }
+                } else if (adProfileSetting.chooseProfilePolicy == ChooseProfilePolicy.EXACT_ID) {
+                    if (p.id.Equals(adProfileSetting.profileId)) {
+                        profile = p;
+                        break;
+                    }
+                }
+            }
+            Init(profile);
+        }
+        /// <summary>
+        /// Init the specified profile.
+        /// </summary>
+        /// <param name="profile">Profile.</param>
+        void Init(AdProfile profile) {
+            if (profile == null) {
+                Debug.LogWarning("Null Profile");
+                return;
+            }
+            foreach (InterstitialProvider provider in profile.interstitialProviders) {
+                DefineInterstitialProvider(provider);
+            }
+            foreach (VideoProvider provider in profile.videoProviders) {
+                DefineVideoProvider(provider);
+            }
+            if (interstitialProviders.Count > 0) {
+                currentInterstitialProvider = interstitialProviders[0];
+            }
+            if (videoProviders.Count > 0) {
+                currentVideoProvider = videoProviders[0];
+            }
+            //Banner
+            if (profile.provideBanner) {
+                currentBannerProvider = new AdMobProvider();
+                currentBannerProvider.InitBanner();
+            }
+            Debug.Log(interstitialProviders.Count + " Interstitial Ad Networks registered");
+            Debug.Log(videoProviders.Count + " Video Ad Networks registered");
+        }
+        /// <summary>
+        /// Start this instance.
+        /// </summary>
+        void Start() {
+            isRemovedAds = PlayerPrefsX.GetBool("RemoveAds");
+            if (!isRemovedAds && currentBannerProvider != null) {
+                currentBannerProvider.LoadBanner();
+            }
+        }
+        /// <summary>
+        /// Fixeds the update.
+        /// </summary>
+        void FixedUpdate() {
+        }
+        /// <summary>
+        /// Removes the ad.
+        /// </summary>
+        public void RemoveAd() {
+            if (!isRemovedAds && currentBannerProvider != null) {
+                isRemovedAds = true;
+                currentBannerProvider.HideBanner();
+            }
+        }
+        /// <summary>
+        /// Loads the interstitial.
+        /// </summary>
+        public void LoadInterstitial() {
+            if (!isRemovedAds) {
+                Debug.Log("InterstitialLoadState " + interstitialLoadState);
+                if (interstitialLoadState == AdLoadState.Undefined || interstitialLoadState == AdLoadState.Failed) {
+                    StartInterstitialRequest();
+                }
+            }
+        }
+        /// <summary>
+        /// Shows the interstitial.
+        /// </summary>
+        public void ShowInterstitial() {
+            Debug.Log("InterstitialLoadState " + interstitialLoadState);
+            if (interstitialLoadState == AdLoadState.Loaded) {
+                EventManager.StartListening("ProviderInterstitialFinished", OnProviderInterstitialFinished);
+                currentInterstitialProvider.ShowInterstitial();
+            }
+        }
+        /// <summary>
+        /// Defines the interstitial provider.
+        /// </summary>
+        /// <param name="ip">Ip.</param>
+        private void DefineInterstitialProvider(InterstitialProvider ip) {
+            AdProvider provider = null;
+
+            switch (ip) {
+                case InterstitialProvider.AdMob:
+                    provider = new AdMobProvider();
+                    break;
+                case InterstitialProvider.Chartboost:
+                    provider = new ChartboostProvider();
+                    break;
+				case InterstitialProvider.AppLovin:
+					provider = new AppLovinProvider ();
+					break;
+				case InterstitialProvider.Facebook:
+					provider = new FacebookProvider ();
+					break;
+				case InterstitialProvider.Leadbolt:
+					provider = new LeadboltProvider ();
+					break;
+            }
+
+            if (provider != null) {
+                interstitialProviders.Add(provider);
+                provider.Init();
+            }
+        }
+        /// <summary>
+        /// Loads the video.
+        /// </summary>
+        public void LoadVideo() {
+            Debug.Log("VideoLoadState " + videoLoadState);
+            if (videoLoadState == AdLoadState.Undefined || videoLoadState == AdLoadState.Failed) {
+                EventManager.TriggerEvent("ShowWaitVideo", null);
+                StartVideoRequest();
+            }
+        }
+        /// <summary>
+        /// Shows the video.
+        /// </summary>
+        public void ShowVideo() {
+            Debug.Log("VideoLoadState " + videoLoadState);
+            if (videoLoadState == AdLoadState.Loaded) {
+                EventManager.StartListening("ProviderVideoFinished", OnProviderVideoFinished);
+                currentVideoProvider.ShowVideo();
+            }
+        }
+        /// <summary>
+        /// Defines the video provider.
+        /// </summary>
+        /// <param name="vp">Vp.</param>
+        private void DefineVideoProvider(VideoProvider vp) {
+            AdProvider provider = null;
+            switch (vp) {
+                case VideoProvider.UnityAds:
+#if UNITY_IOS || UNITY_ANDROID
+                    provider = UnityAdsProvider.Create();
+#endif
+                    break;
+                case VideoProvider.Vungle:
+                    provider = new VungleProvider();
+                    break;
+                case VideoProvider.Chartboost:
+                    provider = new ChartboostProvider();
+                    break;
+				case VideoProvider.AppLovin:
+					provider = new AppLovinProvider ();
+					break;
+				case VideoProvider.Admob:
+					provider = new AdMobProvider ();
+					break;
+				case VideoProvider.Leadbolt:
+					provider = new LeadboltProvider ();
+					break;
+            }
+            if (provider != null) {
+                videoProviders.Add(provider);
+                provider.Init();
+            }
+        }
+        /// <summary>
+        /// Starts the interstitial request.
+        /// </summary>
+        private void StartInterstitialRequest() {
+            interstitialLoadState = AdLoadState.InProgress;
+
+            if (currentInterstitialProvider != null) {
+                if (currentInterstitialProvider.AvaliablePlatfroms.Contains(Application.platform) && currentInterstitialProvider.InterstitialProvider != InterstitialProvider.None) {
+                    Debug.Log("Start Interstitial Request with " + currentInterstitialProvider.InterstitialProvider);
+
+                    EventManager.StartListening("ProviderInterstitialLoadComplete", OnProviderInterstitialLoadComplete);
+                    currentInterstitialProvider.LoadInterstitial();
+                    CancelInvoke("OnInterstitialLoadTimeOut");
+                    Invoke("OnInterstitialLoadTimeOut", adProfileSetting.interstisialLoadTimeOut);
+
+                    return;
+                }
+            } else {
+                Debug.Log("No Interstitial Provider");
+            }
+        }
+        /// <summary>
+        /// Starts the video request.
+        /// </summary>
+        private void StartVideoRequest() {
+            videoLoadState = AdLoadState.InProgress;
+
+            if (currentVideoProvider != null) {
+                if (currentVideoProvider.AvaliablePlatfroms.Contains(Application.platform) && currentVideoProvider.VideoProvider != VideoProvider.None) {
+                    Debug.Log("Start Video Request with " + currentVideoProvider.VideoProvider);
+
+                    EventManager.StartListening("ProviderVideoLoadComplete", OnProviderVideoLoadComplete);
+
+                    currentVideoProvider.LoadVideo();
+                    CancelInvoke("OnVideoLoadTimeOut");
+                    Invoke("OnVideoLoadTimeOut", adProfileSetting.videoLoadTimeOut);
+
+                    return;
+                }
+            } else {
+                Debug.Log("No Video Provider");
+            }
+        }
+        /// <summary>
+        /// Raises the provider interstitial load complete event.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void OnProviderInterstitialLoadComplete(EventInfo eventInfo) {
+            bool isLoaded;
+            eventInfo.eventBool.TryGetValue("IsLoaded", out isLoaded);
+
+            EventManager.StopListening("ProviderInterstitialLoadComplete", OnProviderInterstitialLoadComplete);
+            if (isLoaded) {
+                interstitialLoadState = AdLoadState.Loaded;
+                OnInterstitialLoadComplete(true);
+            } else {
+                int index = interstitialProviders.IndexOf(currentInterstitialProvider);
+                index++;
+                if (interstitialProviders.Count > index) {
+                    currentInterstitialProvider = interstitialProviders[index];
+                    StartInterstitialRequest();
+                } else {
+                    interstitialLoadState = AdLoadState.Failed;
+                    if (interstitialProviders.Count > 0) {
+                        currentInterstitialProvider = interstitialProviders[0];
+                    }
+
+                    OnInterstitialLoadComplete(false);
+                }
+            }
+
+        }
+        /// <summary>
+        /// Switchs to next interstitial providers.
+        /// </summary>
+        void SwitchToNextInterstitialProviders() {
+            int index = interstitialProviders.IndexOf(currentInterstitialProvider);
+            index++;
+            if (interstitialProviders.Count > index) {
+                currentInterstitialProvider = interstitialProviders[index];
+            } else {
+                if (interstitialProviders.Count > 0) {
+                    currentInterstitialProvider = interstitialProviders[0];
+                }
+            }
+        }
+        /// <summary>
+        /// Raises the interstitial load complete event.
+        /// </summary>
+        /// <param name="result">If set to <c>true</c> result.</param>
+        void OnInterstitialLoadComplete(bool result) {
+            Debug.Log("Interstitial Loaded: " + currentInterstitialProvider.InterstitialProvider + " " + result);
+            if (result) {
+                ShowInterstitial();
+            }
+        }
+        /// <summary>
+        /// Raises the provider interstitial finished event.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void OnProviderInterstitialFinished(EventInfo eventInfo) {
+            EventManager.StopListening("ProviderInterstitialFinished", OnProviderInterstitialFinished);
+            interstitialLoadState = AdLoadState.Undefined;
+
+            bool isSucceeded;
+            eventInfo.eventBool.TryGetValue("IsSucceeded", out isSucceeded);
+
+            if (isSucceeded) {
+                EventManager.TriggerEvent("AdControllerInterstitialFinished", null);
+            }
+            if (adProfileSetting.chooseProviderPolicy == ChooseProviderPolicy.ROLL) {
+                SwitchToNextInterstitialProviders();
+            } else if (adProfileSetting.chooseProviderPolicy == ChooseProviderPolicy.ALWAYS_FROM_FIRST) {
+                currentInterstitialProvider = interstitialProviders[0];
+            }
+        }
+        /// <summary>
+        /// Raises the interstitial load time out event.
+        /// </summary>
+        void OnInterstitialLoadTimeOut() {
+            Debug.Log("AdController Interstitial Load TimeOut");
+            if (interstitialLoadState == AdLoadState.InProgress) {
+                EventInfo eventInfo = new EventInfo();
+                eventInfo.eventBool.Add("IsLoaded", false);
+                EventManager.TriggerEvent("ProviderInterstitialLoadComplete", eventInfo);
+            }
+
+        }
+        /// <summary>
+        /// Raises the provider video load complete event.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void OnProviderVideoLoadComplete(EventInfo eventInfo) {
+            bool isLoaded;
+            eventInfo.eventBool.TryGetValue("IsLoaded", out isLoaded);
+            Debug.Log("Handle OnProviderVideoLoadComplete " + isLoaded);
+            EventManager.StopListening("ProviderVideoLoadComplete", OnProviderVideoLoadComplete);
+            if (isLoaded) {
+                videoLoadState = AdLoadState.Loaded;
+                OnVideoLoadComplete(true);
+            } else {
+                int index = videoProviders.IndexOf(currentVideoProvider);
+                index++;
+                if (videoProviders.Count > index) {
+                    currentVideoProvider = videoProviders[index];
+                    StartVideoRequest();
+                } else {
+                    videoLoadState = AdLoadState.Failed;
+
+                    if (videoProviders.Count > 0) {
+                        currentVideoProvider = videoProviders[0];
+                    }
+
+                    OnVideoLoadComplete(false);
+                }
+
+            }
+
+        }
+        /// <summary>
+        /// Switchs to next video providers.
+        /// </summary>
+        void SwitchToNextVideoProviders() {
+            int index = videoProviders.IndexOf(currentVideoProvider);
+            index++;
+            if (videoProviders.Count > index) {
+                currentVideoProvider = videoProviders[index];
+            } else {
+                if (videoProviders.Count > 0) {
+                    currentVideoProvider = videoProviders[0];
+                }
+            }
+        }
+        /// <summary>
+        /// Raises the provider video finished event.
+        /// </summary>
+        /// <param name="eventInfo">Event info.</param>
+        void OnProviderVideoFinished(EventInfo eventInfo) {
+            EventManager.StopListening("ProviderVideoFinished", OnProviderVideoFinished);
+            videoLoadState = AdLoadState.Undefined;
+
+            bool isSucceeded;
+            eventInfo.eventBool.TryGetValue("IsSucceeded", out isSucceeded);
+
+            if (isSucceeded) {
+                EventManager.TriggerEvent("AdControllerVideoFinished", null);
+            }
+            if (adProfileSetting.chooseProviderPolicy == ChooseProviderPolicy.ROLL) {
+                SwitchToNextVideoProviders();
+            } else if (adProfileSetting.chooseProviderPolicy == ChooseProviderPolicy.ALWAYS_FROM_FIRST) {
+                currentVideoProvider = videoProviders[0];
+            }
+        }
+        /// <summary>
+        /// Raises the video load complete event.
+        /// </summary>
+        /// <param name="result">If set to <c>true</c> result.</param>
+        void OnVideoLoadComplete(bool result) {
+            Debug.Log("Video Loaded: " + currentVideoProvider.VideoProvider + " " + result);
+            EventManager.TriggerEvent("HideWaitVideo", null);
+            if (result) {
+                ShowVideo();
+            }
+        }
+        /// <summary>
+        /// Raises the video load time out event.
+        /// </summary>
+        void OnVideoLoadTimeOut() {
+            Debug.Log("AdController Video Load TimeOut");
+            if (videoLoadState == AdLoadState.InProgress) {
+                EventInfo eventInfo = new EventInfo();
+                eventInfo.eventBool.Add("IsLoaded", false);
+                EventManager.TriggerEvent("ProviderVideoLoadComplete", eventInfo);
+            }
+
+        }
+    }
+}

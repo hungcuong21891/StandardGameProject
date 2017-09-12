@@ -1,0 +1,387 @@
+﻿using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEditor;
+using System.Reflection;
+
+namespace BaseFramework {
+	/// <summary>
+	/// Ad profile setting editor.
+	/// </summary>
+    [CustomEditor(typeof(AdProfileSetting))]
+    public class AdProfileSettingEditor : Editor {
+		/// <summary>
+		/// The ad profile setting.
+		/// </summary>
+        private AdProfileSetting adProfileSetting;
+		/// <summary>
+		/// The tab strings.
+		/// </summary>
+        private string[] TabStrings = new string[] { "Profiles", "Ad Ids", "Settings" };
+		/// <summary>
+		/// Raises the inspector GU event.
+		/// </summary>
+        public override void OnInspectorGUI() {
+            adProfileSetting = (AdProfileSetting)target;
+            GUI.changed = false;
+            adProfileSetting.TabIndex = GUILayout.Toolbar(adProfileSetting.TabIndex, TabStrings);
+            switch (adProfileSetting.TabIndex) {
+                case 0:
+                    Profiles();
+                    break;
+                case 1:
+                    AdIds();
+                    break;
+                case 2:
+                    Settings();
+                    break;
+            }
+            if (GUI.changed) {
+                EditorUtility.SetDirty(adProfileSetting);
+            }
+        }
+		/// <summary>
+		/// Profiles this instance.
+		/// </summary>
+        void Profiles() {
+            EditorGUILayout.LabelField("Fill profiles here", EditorStyles.boldLabel);
+            EditorGUILayout.Space();
+            EditorGUI.indentLevel++;
+            {
+                foreach (AdProfile profile in adProfileSetting.adProfiles) {
+                    EditorGUILayout.BeginVertical(GUI.skin.box);
+                    EditorGUILayout.BeginHorizontal();
+                    {
+                        profile.isOpen = EditorGUILayout.Foldout(profile.isOpen, profile.id);
+                        EditorGUILayout.Space();
+                        if (GUILayout.Button("X", GUILayout.Width(20))) {
+                            adProfileSetting.adProfiles.Remove(profile);
+                            return;
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
+                    if (profile.isOpen) {
+                        EditorGUILayout.BeginHorizontal();
+                        {
+                            EditorGUILayout.LabelField("Profile Id");
+                            profile.id = EditorGUILayout.TextField(profile.id);
+                        }
+                        EditorGUILayout.EndHorizontal();
+                        EditorGUILayout.BeginHorizontal();
+                        {
+                            EditorGUILayout.LabelField("Platform ");
+                            profile.platform = (RuntimePlatform)EditorGUILayout.EnumPopup(profile.platform);
+                        }
+                        EditorGUILayout.EndHorizontal();
+                        EditorGUI.indentLevel++;
+                        {
+                            EditorGUILayout.Space();
+                            //Banner
+                            EditorGUILayout.BeginHorizontal();
+                            {
+                                EditorGUILayout.LabelField("Provide Banner Admob Network");
+                                profile.provideBanner = EditorGUILayout.Toggle(profile.provideBanner);
+                            }
+                            EditorGUILayout.EndHorizontal();
+                            EditorGUILayout.Space();
+                            EditorGUILayout.BeginHorizontal();
+                            {
+                                profile.isVideoOpen = EditorGUILayout.Foldout(profile.isVideoOpen, "Video Ad Networks");
+                                if (GUILayout.Button("+", EditorStyles.miniButtonLeft, GUILayout.Width(20))) {
+                                    profile.videoProviders.Add(VideoProvider.None);
+                                }
+                               GUI.enabled = false;
+                                if (profile.videoProviders.Count > 0) {
+                                    GUI.enabled = true;
+                                }
+                                if (GUILayout.Button("-", EditorStyles.miniButtonRight, GUILayout.Width(20))) {
+                                    profile.videoProviders.RemoveAt(profile.videoProviders.Count - 1);
+                                }
+                                GUI.enabled = true;
+                            }
+                            EditorGUILayout.EndHorizontal();
+                            bool HorizontalStarted = false;
+                            if (profile.isVideoOpen) {
+                                for (int i = 0; i < profile.videoProviders.Count; i++) {
+                                    if (i % 3 == 0) {
+                                        HorizontalStarted = true;
+                                        EditorGUILayout.BeginHorizontal();
+                                        EditorGUILayout.Space();
+                                    }
+                                    profile.videoProviders[i] = (VideoProvider)EditorGUILayout.EnumPopup(profile.videoProviders[i], GUILayout.Width(120));
+                                    if ((i + 1) % 3 == 0) {
+                                        HorizontalStarted = false;
+                                        EditorGUILayout.EndHorizontal();
+                                    }
+                                }
+                                if (HorizontalStarted) {
+                                    EditorGUILayout.EndHorizontal();
+                                }
+                                EditorGUILayout.Space();
+                            }
+                            //Interstistial
+                            EditorGUILayout.BeginHorizontal();
+                            {
+                                profile.isInterstisialOpen = EditorGUILayout.Foldout(profile.isInterstisialOpen, "Interstitial Ad Networks");
+                                if (GUILayout.Button("+", EditorStyles.miniButtonLeft, GUILayout.Width(20))) {
+                                    profile.interstitialProviders.Add(InterstitialProvider.None);
+                                }
+                                GUI.enabled = false;
+                                if (profile.interstitialProviders.Count > 0) {
+                                    GUI.enabled = true;
+                                }
+                                if (GUILayout.Button("-", EditorStyles.miniButtonRight, GUILayout.Width(20))) {
+                                    profile.interstitialProviders.RemoveAt(profile.interstitialProviders.Count - 1);
+                                }
+                                GUI.enabled = true;
+
+                            }
+                            EditorGUILayout.EndHorizontal();
+                            HorizontalStarted = false;
+                            if (profile.isInterstisialOpen) {
+                                for (int i = 0; i < profile.interstitialProviders.Count; i++) {
+                                    if (i % 3 == 0) {
+                                        HorizontalStarted = true;
+                                        EditorGUILayout.BeginHorizontal();
+                                        EditorGUILayout.Space();
+                                    }
+                                    profile.interstitialProviders[i] = (InterstitialProvider)EditorGUILayout.EnumPopup(profile.interstitialProviders[i], GUILayout.Width(120));
+                                    if ((i + 1) % 3 == 0) {
+                                        HorizontalStarted = false;
+                                        EditorGUILayout.EndHorizontal();
+                                    }
+                                }
+                                if (HorizontalStarted) {
+                                    EditorGUILayout.EndHorizontal();
+                                }
+                                EditorGUILayout.Space();
+                            }
+                            EditorGUILayout.Space();
+                        }
+                        EditorGUI.indentLevel--;
+                    }
+                    CheckProfile(profile);
+                    EditorGUILayout.EndVertical();
+               }
+            }
+            EditorGUI.indentLevel--;
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.Space();
+            if (GUILayout.Button("New Ad Profile", GUILayout.Width(180))) {
+                AdProfile p = new AdProfile();
+                adProfileSetting.adProfiles.Add(p);
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+		/// <summary>
+		/// Ads the identifiers.
+		/// </summary>
+        void AdIds() {
+            EditorGUILayout.Space();
+            //Unity Ads
+            EditorGUILayout.BeginVertical(GUI.skin.box);
+            EditorGUILayout.LabelField("Unity Ads", EditorStyles.boldLabel);
+            EditorGUILayout.Space();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("IOS Id:");
+            adProfileSetting.UnityAds_IOS_ID = EditorGUILayout.TextField(adProfileSetting.UnityAds_IOS_ID);
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Android Id:");
+            adProfileSetting.UnityAds_Android_ID = EditorGUILayout.TextField(adProfileSetting.UnityAds_Android_ID);
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.Space();
+            EditorGUILayout.EndVertical();
+			//Facebook
+			EditorGUILayout.BeginVertical(GUI.skin.box);
+			EditorGUILayout.LabelField("Facebook", EditorStyles.boldLabel);
+			EditorGUILayout.Space();
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Placement Id:");
+			adProfileSetting.FacebookPlacement_ID = EditorGUILayout.TextField(adProfileSetting.FacebookPlacement_ID);
+			EditorGUILayout.EndHorizontal();
+			EditorGUILayout.Space();
+			EditorGUILayout.EndVertical();
+            //Vungle
+            EditorGUILayout.BeginVertical(GUI.skin.box);
+            EditorGUILayout.LabelField("Vungle", EditorStyles.boldLabel);
+            EditorGUILayout.Space();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("IOS Id:");
+            adProfileSetting.Vungle_IOS_ID = EditorGUILayout.TextField(adProfileSetting.Vungle_IOS_ID);
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Android Id:");
+            adProfileSetting.Vungle_Android_ID = EditorGUILayout.TextField(adProfileSetting.Vungle_Android_ID);
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.Space();
+            EditorGUILayout.EndVertical();
+            //ChartBoost
+            EditorGUILayout.BeginVertical(GUI.skin.box);
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Chartboost", EditorStyles.boldLabel);
+            EditorGUILayout.EndHorizontal();
+            ChartBoostProfileSettingEditor.DrawSettings();
+            EditorGUILayout.EndVertical();
+			//AppLovin
+			EditorGUILayout.BeginVertical(GUI.skin.box);
+			EditorGUILayout.LabelField("AppLovin", EditorStyles.boldLabel);
+			EditorGUILayout.Space();
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Ads Id:");
+			adProfileSetting.AppLovin_ID = EditorGUILayout.TextField(adProfileSetting.AppLovin_ID);
+			EditorGUILayout.EndHorizontal();
+			EditorGUILayout.Space();
+			EditorGUILayout.EndVertical();
+			//Leadbolt
+			EditorGUILayout.BeginVertical(GUI.skin.box);
+			EditorGUILayout.LabelField("Leadbolt", EditorStyles.boldLabel);
+			EditorGUILayout.Space();
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Ads Id:");
+			adProfileSetting.Leadbolt_ID = EditorGUILayout.TextField(adProfileSetting.Leadbolt_ID);
+			EditorGUILayout.EndHorizontal();
+			EditorGUILayout.Space();
+			EditorGUILayout.EndVertical();
+            //AdMob
+            EditorGUILayout.BeginVertical(GUI.skin.box);
+            EditorGUILayout.LabelField("AdMob", EditorStyles.boldLabel);
+            EditorGUILayout.Space();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("IOS Banner Id:");
+            adProfileSetting.Admob_IOS_Banner_Id = EditorGUILayout.TextField(adProfileSetting.Admob_IOS_Banner_Id);
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("IOS Interstitial Id:");
+            adProfileSetting.Admob_IOS_Interstisial_Id = EditorGUILayout.TextField(adProfileSetting.Admob_IOS_Interstisial_Id);
+            EditorGUILayout.EndHorizontal();
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("IOS RewardVideo Id:");
+			adProfileSetting.Admob_IOS_Video_Id = EditorGUILayout.TextField(adProfileSetting.Admob_IOS_Video_Id);
+			EditorGUILayout.EndHorizontal();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Android Banner Id:");
+            adProfileSetting.Admob_Android_Banner_Id = EditorGUILayout.TextField(adProfileSetting.Admob_Android_Banner_Id);
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Android Interstitial Id:");
+            adProfileSetting.Admob_Android_Interstisial_Id = EditorGUILayout.TextField(adProfileSetting.Admob_Android_Interstisial_Id);
+            EditorGUILayout.EndHorizontal();
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Android RewardVideo Id:");
+			adProfileSetting.Admob_Android_Video_Id = EditorGUILayout.TextField(adProfileSetting.Admob_Android_Video_Id);
+			EditorGUILayout.EndHorizontal();
+            EditorGUILayout.Space();
+            TestDevices();
+            EditorGUILayout.EndVertical();
+        }
+		/// <summary>
+		/// Settings this instance.
+		/// </summary>
+        void Settings() {
+            EditorGUILayout.Space();
+            adProfileSetting.chooseProfilePolicy = (ChooseProfilePolicy)EditorGUILayout.EnumPopup("Choose Profile Policy", adProfileSetting.chooseProfilePolicy);
+            if (adProfileSetting.chooseProfilePolicy == ChooseProfilePolicy.EXACT_ID) {
+                EditorGUI.indentLevel++;
+                adProfileSetting.profileId = EditorGUILayout.TextField("Profile ID", adProfileSetting.profileId);
+                EditorGUI.indentLevel--;
+            }
+            adProfileSetting.chooseProviderPolicy = (ChooseProviderPolicy)EditorGUILayout.EnumPopup("Choose Provider Policy", adProfileSetting.chooseProviderPolicy);
+            if (adProfileSetting.chooseProfilePolicy == ChooseProfilePolicy.EXACT_ID) {
+                EditorGUI.indentLevel++;
+                adProfileSetting.profileId = EditorGUILayout.TextField("Profile ID", adProfileSetting.profileId);
+                EditorGUI.indentLevel--;
+            }
+            EditorGUILayout.Space();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Video Ad Timeout");
+            adProfileSetting.videoLoadTimeOut = EditorGUILayout.FloatField(adProfileSetting.videoLoadTimeOut);
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.Space();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Interstisial Ad Timeout");
+            adProfileSetting.interstisialLoadTimeOut = EditorGUILayout.FloatField(adProfileSetting.interstisialLoadTimeOut);
+            EditorGUILayout.EndHorizontal();
+        }
+		/// <summary>
+		/// Checks the profile.
+		/// </summary>
+		/// <param name="profile">Profile.</param>
+        private static void CheckProfile(AdProfile profile) {
+            if (HasDuplicates(profile.videoProviders)) {
+                profile.isOpen = true;
+                EditorGUILayout.HelpBox("Video Ad Providers Has Duplicates Netwroks", MessageType.Error);
+            }
+            if (HasDuplicates(profile.interstitialProviders)) {
+                profile.isOpen = true;
+                EditorGUILayout.HelpBox("Interstitial Ad Providers Has Duplicates Netwroks", MessageType.Error);
+            }
+        }
+		/// <summary>
+		/// Determines if has duplicates the specified myList.
+		/// </summary>
+		/// <returns><c>true</c> if has duplicates the specified myList; otherwise, <c>false</c>.</returns>
+		/// <param name="myList">My list.</param>
+		/// <typeparam name="T">The 1st type parameter.</typeparam>
+        private static bool HasDuplicates<T>(List<T> myList) {
+            var hs = new HashSet<T>();
+            for (var i = 0; i < myList.Count; ++i) {
+                if (!hs.Add(myList[i]))
+                    return true;
+            }
+            return false;
+        }
+		/// <summary>
+		/// Tests the devices.
+		/// </summary>
+        private void TestDevices() {
+            EditorGUI.indentLevel++;
+            {
+                adProfileSetting.IsTestDevicesOpened = EditorGUILayout.Foldout(adProfileSetting.IsTestDevicesOpened, "Test Devices");
+                if (adProfileSetting.testDevices.Count == 0) {
+                    EditorGUILayout.HelpBox("No Test Devices Registered", MessageType.Info);
+                }
+                if (adProfileSetting.IsTestDevicesOpened) {
+                    foreach (GADTestDevice device in adProfileSetting.testDevices) {
+                        EditorGUI.indentLevel = 2;
+                        EditorGUILayout.BeginVertical(GUI.skin.box);
+                        EditorGUILayout.BeginHorizontal();
+                        {
+                            device.IsOpen = EditorGUILayout.Foldout(device.IsOpen, device.Name);
+                            if (GUILayout.Button("X", GUILayout.Width(20))) {
+                                adProfileSetting.testDevices.Remove(device);
+                                return;
+                            }
+                        }
+                        EditorGUILayout.EndHorizontal();
+                        if (device.IsOpen) {
+                            EditorGUI.indentLevel = 3;
+                            EditorGUILayout.BeginHorizontal();
+                            EditorGUILayout.LabelField("Device Name");
+                            device.Name = EditorGUILayout.TextField(device.Name);
+                            EditorGUILayout.EndHorizontal();
+                            EditorGUILayout.BeginHorizontal();
+                            EditorGUILayout.LabelField("Device Id");
+                            device.ID = EditorGUILayout.TextField(device.ID);
+                            if (device.ID.Length > 0) {
+                                device.ID = device.ID.Trim();
+                            }
+                            EditorGUILayout.EndHorizontal();
+                        }
+                        EditorGUILayout.EndVertical();
+                        EditorGUILayout.Space();
+                    }
+                }
+                EditorGUI.indentLevel = 0;
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.Space();
+                if (GUILayout.Button("Register New Device", GUILayout.Width(135))) {
+                    adProfileSetting.testDevices.Add(new GADTestDevice());
+                    adProfileSetting.IsTestDevicesOpened = true;
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+            EditorGUI.indentLevel--;
+        }
+    }
+}
